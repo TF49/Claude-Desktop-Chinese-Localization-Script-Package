@@ -1,0 +1,52 @@
+[
+  {
+    "description": "支持 zh-CN 语言代码",
+    "find": "VP=\"en-US\",HP=[\"en-US\",\"de-DE\",\"fr-FR\",\"ko-KR\",\"ja-JP\",\"es-419\",\"es-ES\",\"it-IT\",\"hi-IN\",\"pt-BR\",\"id-ID\"]",
+    "replace": "VP=\"en-US\",HP=[\"en-US\",\"de-DE\",\"fr-FR\",\"ko-KR\",\"ja-JP\",\"es-419\",\"es-ES\",\"it-IT\",\"hi-IN\",\"pt-BR\",\"id-ID\",\"zh-CN\"]"
+  },
+  {
+    "description": "语言菜单显示简体中文",
+    "find": "const e=n.formatters.getDisplayNames(VP,NIn),t=new Intl.Collator(VP);return HP.map(t=>({locale:t,name:e.of(t),localName:n.formatters.getDisplayNames(t,NIn).of(t)})).slice().sort((e,n)=>t.compare(e.name,n.name))",
+    "replace": "const e=n.formatters.getDisplayNames(VP,NIn),t=new Intl.Collator(VP);return HP.map(t=>({locale:t,name:\"zh-CN\"===t?\"简体中文\":e.of(t),localName:\"zh-CN\"===t?\"简体中文\":n.formatters.getDisplayNames(t,NIn).of(t)})).slice().sort((e,n)=>t.compare(e.name,n.name))"
+  },
+  {
+    "description": "安装说明选项",
+    "find": "defaultMessage:\"Test setup instructions\",id:\"qmzHEfH73H\"",
+    "replace": "defaultMessage:\"测试安装说明\",id:\"qmzHEfH73H\""
+  },
+  {
+    "description": "zh-CN 中文字体回退",
+    "find": ":root{--font-mono: var(--font-anthropic-mono);--font-ui: var(--font-anthropic-sans);--font-ui-serif: var(--font-anthropic-serif);--font-claude-response: var(--font-anthropic-serif);--font-user-message: var(--font-ui);--font-sans-serif: var(--font-ui);--font-serif: var(--font-ui-serif);--font-system: system-ui, sans-serif;--font-dyslexia: var(--font-open-dyslexic), \"Comic Sans MS\", ui-serif, Georgia, serif}html,body{font-family:var(--font-ui)}",
+    "replace": ":root{--font-mono: var(--font-anthropic-mono);--font-ui: var(--font-anthropic-sans);--font-ui-serif: var(--font-anthropic-serif);--font-claude-response: var(--font-anthropic-serif);--font-user-message: var(--font-ui);--font-sans-serif: var(--font-ui);--font-serif: var(--font-ui-serif);--font-system: system-ui, sans-serif;--font-dyslexia: var(--font-open-dyslexic), \"Comic Sans MS\", ui-serif, Georgia, serif}html[lang=zh-CN]{--font-ui:\"Anthropic Sans\",\"Microsoft YaHei UI\",\"Microsoft YaHei\",\"PingFang SC\",\"Noto Sans CJK SC\",system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;--font-ui-serif:\"Anthropic Sans\",\"Microsoft YaHei UI\",\"Microsoft YaHei\",\"PingFang SC\",\"Noto Sans CJK SC\",system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;--font-claude-response:var(--font-ui);--font-user-message:var(--font-ui)}html,body{font-family:var(--font-ui)}"
+  },
+  {
+    "description": "侧边栏 New task 默认文案",
+    "find": "defaultMessage:\"New task\",id:\"K4O03zh0vo\"",
+    "replace": "defaultMessage:\"新建任务\",id:\"K4O03zh0vo\""
+  },
+  {
+    "description": "侧边栏 New task formatMessage 默认文案",
+    "find": "formatMessage({id:\"K4O03zh0vo\",defaultMessage:\"New task\"})",
+    "replace": "formatMessage({id:\"K4O03zh0vo\",defaultMessage:\"新建任务\"})"
+  },
+  {
+    "description": "侧边栏 Projects 默认文案",
+    "find": "defaultMessage:\"Projects\",id:\"UxTJRaKagI\"",
+    "replace": "defaultMessage:\"项目\",id:\"UxTJRaKagI\""
+  },
+  {
+    "description": "侧边栏 Scheduled 默认文案",
+    "find": "defaultMessage:\"Scheduled\",id:\"cXAlMRerxW\"",
+    "replace": "defaultMessage:\"定时任务\",id:\"cXAlMRerxW\""
+  },
+  {
+    "description": "侧边栏 Customize 默认文案",
+    "find": "defaultMessage:\"Customize\",id:\"TXpOBiuxud\"",
+    "replace": "defaultMessage:\"自定义\",id:\"TXpOBiuxud\""
+  },
+  {
+    "description": "反馈数据说明默认文案",
+    "find": "defaultMessage:\"Learn how we use feedback data\",id:\"z63qJiitfw\"",
+    "replace": "defaultMessage:\"了解我们如何使用反馈数据\",id:\"z63qJiitfw\""
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "projectName": "claude-desktop-zh-localization",
+  "installCandidates": [
+    "C:\\Program Files\\WindowsApps\\Claude_*_x64__pzs8sxrjxfjjc\\app\\resources",
+    "%LOCALAPPDATA%\\AnthropicClaude\\app-*\\resources"
+  ],
+  "resourceRelativePaths": {
+    "appAsar": "app.asar",
+    "rootEnLocale": "en-US.json",
+    "ionEnLocale": "ion-dist\\i18n\\en-US.json",
+    "assetsDir": "ion-dist\\assets\\v1",
+    "statsigDir": "ion-dist\\i18n\\statsig"
+  },
+  "applyRelativePaths": {
+    "rootLocale": "zh-CN.json",
+    "ionLocale": "ion-dist\\i18n\\zh-CN.json",
+    "ionLocaleZst": "ion-dist\\i18n\\zh-CN.json.zst",
+    "ionOverrides": "ion-dist\\i18n\\zh-CN.overrides.json",
+    "ionOverridesZst": "ion-dist\\i18n\\zh-CN.overrides.json.zst",
+    "statsigLocale": "ion-dist\\i18n\\statsig\\zh-CN.json",
+    "statsigLocaleZst": "ion-dist\\i18n\\statsig\\zh-CN.json.zst",
+    "assetsDir": "ion-dist\\assets\\v1"
+  },
+  "backupDirName": "backups",
+  "encoding": "utf-8"
+}
