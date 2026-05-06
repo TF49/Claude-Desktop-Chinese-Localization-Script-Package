@@ -18,6 +18,10 @@ try {
     $patches = Get-Patches
     $assetFiles = Get-AssetFiles -AssetsDir $applyTargets["assetsDir"]
     $patchAnalysis = Analyze-PatchHits -Patches $patches -AssetFiles $assetFiles
+    $criticalPatchFailures = @(Get-CriticalPatchFailures -PatchAnalysis $patchAnalysis)
+    if ($criticalPatchFailures.Count -gt 0) {
+        throw ($criticalPatchFailures -join [Environment]::NewLine)
+    }
     $managedAssets = Get-ManagedPatchedAssets -PatchedAssetsDir $artifacts["PatchedAssetsDir"] -AssetsDir $applyTargets["assetsDir"]
     $managedAssetMap = @{}
     foreach ($managedAsset in $managedAssets) {

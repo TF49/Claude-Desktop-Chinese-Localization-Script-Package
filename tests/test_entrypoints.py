@@ -83,9 +83,31 @@ class EntrypointTests(unittest.TestCase):
     def test_verification_runtime_patch_check_tolerates_replace_hits(self) -> None:
         common = (PROJECT_ROOT / "scripts" / "common.ps1").read_text(encoding="utf-8-sig")
 
-        self.assertIn('$replace = Decode-PatchText -Value $patch["replace"]', common)
-        self.assertIn("$replaceCount = Count-LiteralOccurrences -Text $text -Value $replace", common)
+        self.assertIn("function Get-PatchPostCheckCount", common)
+        self.assertIn('if ($Patch.ContainsKey("postCheck")', common)
+        self.assertIn('if ($Patch.ContainsKey("replace")', common)
         self.assertIn("if ($replaceCount -gt 0 -and $replaceCount -ge $findCount)", common)
+
+    def test_runtime_patch_flow_supports_regex_fallbacks(self) -> None:
+        common = (PROJECT_ROOT / "scripts" / "common.ps1").read_text(encoding="utf-8-sig")
+
+        self.assertIn("function Get-PatchFindCount", common)
+        self.assertIn('if ($Patch.ContainsKey("regexFind")', common)
+        self.assertIn('[System.Text.RegularExpressions.Regex]::Matches($text, $pattern).Count', common)
+        self.assertIn('[System.Text.RegularExpressions.Regex]::Replace($text, $pattern, $patch["regexReplace"])', common)
+        self.assertIn('strategy    = $(if ($usedRegex) { "regex" } else { "literal" })', common)
+
+    def test_critical_runtime_patch_misses_are_reported(self) -> None:
+        common = (PROJECT_ROOT / "scripts" / "common.ps1").read_text(encoding="utf-8-sig")
+        apply_script = (PROJECT_ROOT / "scripts" / "apply_localization.ps1").read_text(
+            encoding="utf-8-sig"
+        )
+
+        self.assertIn("function Get-CriticalPatchFailures", common)
+        self.assertIn('关键补丁未命中，当前 Claude Desktop 版本可能尚未适配', common)
+        self.assertIn("$criticalPatchFailures = @(Get-CriticalPatchFailures -PatchAnalysis $patchAnalysis)", apply_script)
+        self.assertIn("if ($criticalPatchFailures.Count -gt 0)", apply_script)
+        self.assertIn("throw ($criticalPatchFailures -join [Environment]::NewLine)", apply_script)
 
     def test_runtime_patch_flow_also_tracks_compressed_assets(self) -> None:
         common = (PROJECT_ROOT / "scripts" / "common.ps1").read_text(encoding="utf-8-sig")

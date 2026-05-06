@@ -356,6 +356,40 @@ function Decode-PatchText {
     return [System.Text.RegularExpressions.Regex]::Unescape($Value)
 }
 
+function Get-PatchPostCheckCount {
+    param(
+        [string]$Text,
+        $Patch
+    )
+    if ($Patch.ContainsKey("postCheck") -and -not [string]::IsNullOrEmpty($Patch["postCheck"])) {
+        return [System.Text.RegularExpressions.Regex]::Matches($Text, $Patch["postCheck"]).Count
+    }
+    if ($Patch.ContainsKey("replace") -and -not [string]::IsNullOrEmpty($Patch["replace"])) {
+        return Count-LiteralOccurrences -Text $Text -Value (Decode-PatchText -Value $Patch["replace"])
+    }
+    return 0
+}
+
+function Get-PatchFindCount {
+    param(
+        [string]$Text,
+        $Patch
+    )
+    $literalCount = 0
+    if ($Patch.ContainsKey("find") -and -not [string]::IsNullOrEmpty($Patch["find"])) {
+        $literalCount = Count-LiteralOccurrences -Text $Text -Value (Decode-PatchText -Value $Patch["find"])
+    }
+    if ($literalCount -gt 0) {
+        return $literalCount
+    }
+
+    if ($Patch.ContainsKey("regexFind") -and -not [string]::IsNullOrEmpty($Patch["regexFind"])) {
+        return [System.Text.RegularExpressions.Regex]::Matches($Text, $Patch["regexFind"]).Count
+    }
+
+    return 0
+}
+
 function Count-LiteralOccurrences {
     param(
         [string]$Text,
@@ -510,8 +544,6 @@ function Analyze-PatchHits {
     )
     $results = New-Object System.Collections.ArrayList
     foreach ($patch in $Patches) {
-        $find = Decode-PatchText -Value $patch["find"]
-        $replace = Decode-PatchText -Value $patch["replace"]
         $matchedFiles = New-Object System.Collections.ArrayList
         $replacedFiles = New-Object System.Collections.ArrayList
         $totalHits = 0
@@ -519,8 +551,8 @@ function Analyze-PatchHits {
 
         foreach ($file in $AssetFiles) {
             $text = Read-Utf8Text -Path $file.FullName
-            $hitCount = Count-LiteralOccurrences -Text $text -Value $find
-            $replacedCount = Count-LiteralOccurrences -Text $text -Value $replace
+            $hitCount = Get-PatchFindCount -Text $text -Patch $patch
+            $replacedCount = Get-PatchPostCheckCount -Text $text -Patch $patch
             if ($hitCount -gt 0) {
                 [void]$matchedFiles.Add([pscustomobject]@{
                         file  = $file.FullName
@@ -539,8 +571,12 @@ function Analyze-PatchHits {
 
         [void]$results.Add([pscustomobject]@{
                 description       = $patch["description"]
+                critical          = [bool]($patch.ContainsKey("critical") -and $patch["critical"])
                 find              = $patch["find"]
                 replace           = $patch["replace"]
+                regexFind         = $patch["regexFind"]
+                regexReplace      = $patch["regexReplace"]
+                postCheck         = $patch["postCheck"]
                 matched           = $totalHits -gt 0
                 alreadyPatched    = $totalHits -eq 0 -and $totalReplacedHits -gt 0
                 totalHits         = $totalHits
@@ -550,6 +586,25 @@ function Analyze-PatchHits {
             })
     }
     return @($results)
+}
+
+function Get-CriticalPatchFailures {
+    param($PatchAnalysis)
+    $failures = New-Object System.Collections.ArrayList
+    foreach ($result in $PatchAnalysis) {
+        $isCritical = $false
+        if ($null -ne $result.PSObject.Properties["critical"]) {
+            $isCritical = [bool]$result.critical
+        }
+        if (-not $isCritical) {
+            continue
+        }
+
+        if (-not $result.matched -and -not $result.alreadyPatched) {
+            [void]$failures.Add("关键补丁未命中，当前 Claude Desktop 版本可能尚未适配: $($result.description)")
+        }
+    }
+    return @($failures)
 }
 
 function Get-PatchTargetFiles {
@@ -572,18 +627,34 @@ function Apply-PatchesToFile {
     $changes = New-Object System.Collections.ArrayList
 
     foreach ($patch in $Patches) {
-        $find = Decode-PatchText -Value $patch["find"]
-        $replace = Decode-PatchText -Value $patch["replace"]
-        if ($find -eq $replace) {
-            continue
+        $count = 0
+        $usedRegex = $false
+
+        if ($patch.ContainsKey("find") -and $patch.ContainsKey("replace")) {
+            $find = Decode-PatchText -Value $patch["find"]
+            $replace = Decode-PatchText -Value $patch["replace"]
+            if ($find -ne $replace) {
+                $count = Count-LiteralOccurrences -Text $text -Value $find
+                if ($count -gt 0) {
+                    $text = $text.Replace($find, $replace)
+                }
+            }
         }
 
-        $count = Count-LiteralOccurrences -Text $text -Value $find
+        if ($count -le 0 -and $patch.ContainsKey("regexFind") -and $patch.ContainsKey("regexReplace")) {
+            $pattern = $patch["regexFind"]
+            $count = [System.Text.RegularExpressions.Regex]::Matches($text, $pattern).Count
+            if ($count -gt 0) {
+                $text = [System.Text.RegularExpressions.Regex]::Replace($text, $pattern, $patch["regexReplace"])
+                $usedRegex = $true
+            }
+        }
+
         if ($count -gt 0) {
-            $text = $text.Replace($find, $replace)
             [void]$changes.Add([pscustomobject]@{
                     description = $patch["description"]
                     count       = $count
+                    strategy    = $(if ($usedRegex) { "regex" } else { "literal" })
                 })
         }
     }
@@ -776,6 +847,9 @@ function Get-VerificationIssues {
     $patches = Get-Patches
     $assetFiles = Get-AssetFiles -AssetsDir $applyTargets["assetsDir"]
     $patchAnalysis = Analyze-PatchHits -Patches $patches -AssetFiles $assetFiles
+    foreach ($issue in @(Get-CriticalPatchFailures -PatchAnalysis $patchAnalysis)) {
+        [void]$issues.Add($issue)
+    }
 
     foreach ($file in $assetFiles) {
         $text = Read-Utf8Text -Path $file.FullName
@@ -783,14 +857,12 @@ function Get-VerificationIssues {
             [void]$issues.Add("仍有旧版语言菜单署名残留: $($file.Name)")
         }
         foreach ($patch in $patches) {
-            $find = Decode-PatchText -Value $patch["find"]
-            $replace = Decode-PatchText -Value $patch["replace"]
-            $findCount = Count-LiteralOccurrences -Text $text -Value $find
+            $findCount = Get-PatchFindCount -Text $text -Patch $patch
             if ($findCount -le 0) {
                 continue
             }
 
-            $replaceCount = Count-LiteralOccurrences -Text $text -Value $replace
+            $replaceCount = Get-PatchPostCheckCount -Text $text -Patch $patch
             if ($replaceCount -gt 0 -and $replaceCount -ge $findCount) {
                 continue
             }
