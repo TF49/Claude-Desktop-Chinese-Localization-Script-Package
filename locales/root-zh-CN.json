@@ -353,5 +353,16 @@
   "zAYm/Z684h": "帮助",
   "zTrDHxC7yZ": "只有当桌面应用程序处于开发者模式时,BLE API才可用. 它的用途是制造者和开发者,并不是官方支持的产品特征.",
   "zasatRyQg/": "在查找器中显示同事会话数据",
-  "ze7mxSJ8h8": "打开"
+  "ze7mxSJ8h8": "打开",
+  "1Gc0Drz87C": "打开",
+  "47FYwba+bI": "取消",
+  "71dtHvbhEs": "等待 Claude",
+  "FoqhUPsr9l": "此 Artifact 要打开另一个应用中的 {protocol} 链接：{url}",
+  "MtBSpEDoNX": "在其他应用中打开链接？",
+  "j17BCr6YjW": "仍然退出",
+  "jepkj1EMUH": "取消",
+  "kdoUubpNNW": "Claude 仍在工作中",
+  "nVK7qlCd2+": "始终允许 Artifact 打开 {protocol} 链接",
+  "q6RXyVAhm/": "此 Artifact 要使用链接 {url} 打开 {appName}",
+  "tsYfzWzCsn": "Claude 正在 {count, plural, one {# 个对话} other {# 个对话}} 中工作。现在退出将中断这些工作。"
 }
