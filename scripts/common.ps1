@@ -442,11 +442,55 @@ function Invoke-NodeInlineScript {
     }
 }
 
+function Test-NodeZstdSupport {
+    $script = @'
+const zlib = require("node:zlib");
+const supported = typeof zlib.zstdCompressSync === "function" && typeof zlib.zstdDecompressSync === "function";
+process.exit(supported ? 0 : 1);
+'@
+    Invoke-NodeInlineScript -ScriptContent $script | Out-Null
+    return $LASTEXITCODE -eq 0
+}
+
+function Get-NodeVersionText {
+    $node = Get-Command node -ErrorAction SilentlyContinue
+    if ($null -eq $node) {
+        return "未找到 node"
+    }
+
+    $version = & $node.Source --version 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) {
+        return "无法读取 node 版本"
+    }
+
+    return $version
+}
+
+function Throw-ZstdUnavailable {
+    param([string]$Operation)
+
+    $nodeVersion = Get-NodeVersionText
+    throw "zstd $Operation 失败：当前 Node.js ($nodeVersion) 不支持 zlib.zstdCompressSync / zstdDecompressSync。请安装 Node.js 22.15.0 或更高版本，或安装 zstd 命令行工具并加入 PATH 后重试。"
+}
+
 function Compress-FileWithZstd {
     param(
         [string]$SourcePath,
         [string]$DestinationPath
     )
+    $zstd = Get-Command zstd -ErrorAction SilentlyContinue
+    if ($null -ne $zstd) {
+        & $zstd.Source -q -f -o $DestinationPath $SourcePath
+        if ($LASTEXITCODE -ne 0) {
+            throw "zstd 压缩失败: $SourcePath"
+        }
+        return
+    }
+
+    if (-not (Test-NodeZstdSupport)) {
+        Throw-ZstdUnavailable -Operation "压缩"
+    }
+
     $script = @'
 const fs = require("node:fs");
 const zlib = require("node:zlib");
@@ -464,6 +508,27 @@ fs.writeFileSync(destination, output);
 
 function Read-CompressedUtf8Text {
     param([string]$Path)
+    $zstd = Get-Command zstd -ErrorAction SilentlyContinue
+    if ($null -ne $zstd) {
+        $tempOutput = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+        try {
+            & $zstd.Source -q -d -f -o $tempOutput $Path
+            if ($LASTEXITCODE -ne 0) {
+                throw "zstd 解压失败: $Path"
+            }
+            return Read-Utf8Text -Path $tempOutput
+        }
+        finally {
+            if (Test-Path -LiteralPath $tempOutput -PathType Leaf) {
+                Remove-Item -LiteralPath $tempOutput -Force
+            }
+        }
+    }
+
+    if (-not (Test-NodeZstdSupport)) {
+        Throw-ZstdUnavailable -Operation "解压"
+    }
+
     $script = @'
 const fs = require("node:fs");
 const zlib = require("node:zlib");
@@ -479,6 +544,19 @@ function Expand-CompressedFile {
         [string]$CompressedPath,
         [string]$DestinationPath
     )
+    $zstd = Get-Command zstd -ErrorAction SilentlyContinue
+    if ($null -ne $zstd) {
+        & $zstd.Source -q -d -f -o $DestinationPath $CompressedPath
+        if ($LASTEXITCODE -ne 0) {
+            throw "zstd 解压失败: $CompressedPath"
+        }
+        return
+    }
+
+    if (-not (Test-NodeZstdSupport)) {
+        Throw-ZstdUnavailable -Operation "解压"
+    }
+
     $script = @'
 const fs = require("node:fs");
 const zlib = require("node:zlib");

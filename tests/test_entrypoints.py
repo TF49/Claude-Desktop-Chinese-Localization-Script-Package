@@ -121,6 +121,13 @@ class EntrypointTests(unittest.TestCase):
         self.assertIn("Backup-File -Source (Get-CompressedAssetPath -AssetPath $assetPath)", apply_script)
         self.assertIn("Sync-CompressedAsset -SourceAssetPath $assetPath -CompressedAssetPath $targetCompressed -ProjectCompressedPath $projectCompressed", apply_script)
 
+    def test_zstd_runtime_reports_unsupported_node_versions_clearly(self) -> None:
+        common = (PROJECT_ROOT / "scripts" / "common.ps1").read_text(encoding="utf-8-sig")
+
+        self.assertIn("function Test-NodeZstdSupport", common)
+        self.assertIn("Get-Command zstd -ErrorAction SilentlyContinue", common)
+        self.assertIn("请安装 Node.js 22.15.0 或更高版本", common)
+
     def test_runtime_patch_flow_keeps_managed_css_bundle_synced_even_without_manifest_hit(self) -> None:
         common = (PROJECT_ROOT / "scripts" / "common.ps1").read_text(encoding="utf-8-sig")
         apply_script = (PROJECT_ROOT / "scripts" / "apply_localization.ps1").read_text(
